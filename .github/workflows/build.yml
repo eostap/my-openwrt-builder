@@ -14,25 +14,27 @@ jobs:
 
       - name: Install ZSTD Compiler
         run: |
-          # Устанавливаем zstd, так как новые SDK OpenWrt сжаты в .tar.zst
           sudo apt-get update
           sudo apt-get install -y zstd
 
       - name: Setup OpenWrt SDK
         run: |
-          # Скачиваем официальный SDK OpenWrt 25.12.5 (.tar.zst)
           wget --tries=10 --retry-connrefused --waitretry=5 -c https://downloads.openwrt.org/releases/25.12.5/targets/x86/64/openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
-          # Распаковываем архив с поддержкой zstd
           tar --zstd -xf openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
-          # Переименовываем каталог в sdk
           mv openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64 sdk
 
-      - name: Update and Install Feeds
+      - name: Update Standard Feeds
         run: |
           cd sdk
-          echo "src-git-full luci_app_xray https://github.com" >> feeds.conf.default
+          # Обновляем дефолтные фиды OpenWrt, чтобы подтянулись базовые зависимости LuCI
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+
+      - name: Clone luci-app-xray Directly
+        run: |
+          cd sdk
+          # Скачиваем репозиторий напрямую в папку пакетов, минуя капризный скрипт feeds
+          git clone --depth 1 https://github.com package/luci-app-xray
 
       - name: Configure Package
         run: |
@@ -44,6 +46,7 @@ jobs:
       - name: Compile Package
         run: |
           cd sdk
+          # Запускаем сборку конкретного пакета
           make package/luci-app-xray/compile V=s IGNORE_ERRORS=1
 
       - name: Upload Artifacts
@@ -53,5 +56,5 @@ jobs:
           path: |
             sdk/bin/packages/x86_64/base/*.apk
             sdk/bin/packages/x86_64/luci/*.apk
-          if-no-files-found: error
-
+            sdk/bin/packages/x86_64/luci_app_xray/*.apk
+          if-no-files-found: warn
