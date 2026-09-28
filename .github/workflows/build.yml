@@ -23,18 +23,18 @@ jobs:
           tar --zstd -xf openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
           mv openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64 sdk
 
+      - name: Clone luci-app-xray Safely
+        run: |
+          # Сначала создаем целевую директорию внутри SDK
+          mkdir -p sdk/package/luci-app-xray
+          # Клонируем репозиторий из глобального окружения (/usr/bin/git), чтобы SDK не ломал пути
+          /usr/bin/git clone --depth 1 https://github.com sdk/package/luci-app-xray
+
       - name: Update Standard Feeds
         run: |
           cd sdk
-          # Обновляем дефолтные фиды OpenWrt, чтобы подтянулись базовые зависимости LuCI
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-
-      - name: Clone luci-app-xray Directly
-        run: |
-          cd sdk
-          # Скачиваем репозиторий напрямую в папку пакетов, минуя капризный скрипт feeds
-          git clone --depth 1 https://github.com package/luci-app-xray
 
       - name: Configure Package
         run: |
@@ -46,7 +46,6 @@ jobs:
       - name: Compile Package
         run: |
           cd sdk
-          # Запускаем сборку конкретного пакета
           make package/luci-app-xray/compile V=s IGNORE_ERRORS=1
 
       - name: Upload Artifacts
