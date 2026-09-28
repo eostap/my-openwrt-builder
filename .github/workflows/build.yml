@@ -1,4 +1,4 @@
-name: Build luci-app-xray APK (Fast Pack)
+name: Build luci-app-xray APK (Safe Checkout)
 
 on:
   workflow_dispatch:
@@ -7,45 +7,45 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Download luci-app-xray Source
-        run: |
-          # Скачиваем исходный код пакета напрямую в виде ZIP-архива, чтобы обойти баг утилиты git clone
-          wget https://github.com
-          unzip main.zip
-          mv luci-app-xray-main source
+      # Шаг 1: Официальный экшен клонирует целевой репозиторий напрямую через внутреннее API
+      - name: Checkout luci-app-xray Source
+        uses: actions/checkout@v4
+        with:
+          repository: 'yichya/luci-app-xray'
+          ref: 'main'
+          path: 'source'
 
       - name: Install APK Tools
         run: |
-          # Устанавливаем официальную утилиту сборки пакетов Alpine/OpenWrt
           sudo apt-get update
           sudo apt-get install -y abuild apk-tools
 
       - name: Prepare APK Structure
         run: |
-          # Создаем структуру папок для генерации пакета
+          # Создаем базовую структуру папок
           mkdir -p apk_root/usr/share/luci/menu.d
           mkdir -p apk_root/usr/share/rpcd/acl.d
           mkdir -p apk_root/www/luci-static/resources/view
 
-          # Копируем JavaScript интерфейс и системные файлы из репозитория yichya
-          cp -r source/root/* apk_root/ 2>/dev/null || true
+          # Копируем JS-интерфейс и файлы настроек из репозитория
+          if [ -d "source/root" ]; then cp -r source/root/* apk_root/ 2>/dev/null || true; fi
           if [ -d "source/luci-app-xray/htdocs" ]; then cp -r source/luci-app-xray/htdocs/* apk_root/www/ 2>/dev/null || true; fi
           if [ -d "source/luci-app-xray/root" ]; then cp -r source/luci-app-xray/root/* apk_root/ 2>/dev/null || true; fi
 
-          # Создаем файл манифеста PKGINFO, необходимый для менеджера apk в OpenWrt 25.12
+          # Создаем файл манифеста для apk-менеджера OpenWrt 25.12.5
           cat << EOF > apk_root/.PKGINFO
           pkgname = luci-app-xray
           pkgver = 3.7.1-1
           pkgdesc = LuCI Support for Xray (OpenWrt 25.12 JS Architecture)
-          url = https://github.com/yichya/luci-app-xray
+          url = https://github.com
           arch = all
           depend = xray-core
           EOF
 
       - name: Pack APK File
         run: |
-          # Упаковываем все файлы в финальный .apk пакет без цифровой подписи
           cd apk_root
+          # Собираем архив пакета
           tar -czf ../luci-app-xray_3.7.1-1_all.apk .PKGINFO * 2>/dev/null || true
 
       - name: Upload Finished APK
