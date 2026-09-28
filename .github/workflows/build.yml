@@ -1,4 +1,4 @@
-name: Build luci-app-xray APK (Safe Checkout)
+name: Build luci-app-xray APK
 
 on:
   workflow_dispatch:
@@ -7,49 +7,53 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # Шаг 1: Официальный экшен клонирует целевой репозиторий напрямую через внутреннее API
-      - name: Checkout luci-app-xray Source
+      - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          repository: 'yichya/luci-app-xray'
-          ref: 'main'
-          path: 'source'
+          fetch-depth: 0
 
-      - name: Install APK Tools
+      - name: Install ZSTD Compiler
         run: |
           sudo apt-get update
-          sudo apt-get install -y abuild apk-tools
+          sudo apt-get install -y zstd
 
-      - name: Prepare APK Structure
+      - name: Setup OpenWrt SDK
         run: |
-          # Создаем базовую структуру папок
-          mkdir -p apk_root/usr/share/luci/menu.d
-          mkdir -p apk_root/usr/share/rpcd/acl.d
-          mkdir -p apk_root/www/luci-static/resources/view
+          wget --tries=10 --retry-connrefused --waitretry=5 -c https://downloads.openwrt.org/releases/25.12.5/targets/x86/64/openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
+          tar --zstd -xf openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
+          mv openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64 sdk
 
-          # Копируем JS-интерфейс и файлы настроек из репозитория
-          if [ -d "source/root" ]; then cp -r source/root/* apk_root/ 2>/dev/null || true; fi
-          if [ -d "source/luci-app-xray/htdocs" ]; then cp -r source/luci-app-xray/htdocs/* apk_root/www/ 2>/dev/null || true; fi
-          if [ -d "source/luci-app-xray/root" ]; then cp -r source/luci-app-xray/root/* apk_root/ 2>/dev/null || true; fi
-
-          # Создаем файл манифеста для apk-менеджера OpenWrt 25.12.5
-          cat << EOF > apk_root/.PKGINFO
-          pkgname = luci-app-xray
-          pkgver = 3.7.1-1
-          pkgdesc = LuCI Support for Xray (OpenWrt 25.12 JS Architecture)
-          url = https://github.com
-          arch = all
-          depend = xray-core
-          EOF
-
-      - name: Pack APK File
+      - name: Clone luci-app-xray Safely
         run: |
-          cd apk_root
-          # Собираем архив пакета
-          tar -czf ../luci-app-xray_3.7.1-1_all.apk .PKGINFO * 2>/dev/null || true
+          # Сначала создаем целевую директорию внутри SDK
+          mkdir -p sdk/package/luci-app-xray
+          # Клонируем репозиторий из глобального окружения (/usr/bin/git), чтобы SDK не ломал пути
+          /usr/bin/git clone --depth 1 https://github.com/yichya/luci-app-xray sdk/package/luci-app-xray
 
-      - name: Upload Finished APK
+      - name: Update Standard Feeds
+        run: |
+          cd sdk
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Configure Package
+        run: |
+          cd sdk
+          make defconfig
+          echo "CONFIG_PACKAGE_luci-app-xray=m" >> .config
+          make defconfig
+
+      - name: Compile Package
+        run: |
+          cd sdk
+          make package/luci-app-xray/compile V=s IGNORE_ERRORS=1
+
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: luci-app-xray-pure-js-apk
-          path: luci-app-xray_3.7.1-1_all.apk
+          name: luci-app-xray-apk-x86_64
+          path: |
+            sdk/bin/packages/x86_64/base/*.apk
+            sdk/bin/packages/x86_64/luci/*.apk
+            sdk/bin/packages/x86_64/luci_app_xray/*.apk
+          if-no-files-found: warn
