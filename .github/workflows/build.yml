@@ -21,7 +21,7 @@ jobs:
       - name: Setup OpenWrt SDK
         run: |
           # Скачиваем официальный SDK OpenWrt 25.12.5 (.tar.zst)
-          wget wget https://downloads.openwrt.org/releases/25.12.5/targets/x86/64/openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
+          wget --tries=10 --retry-connrefused --waitretry=5 -c https://downloads.openwrt.org/releases/25.12.5/targets/x86/64/openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
           # Распаковываем архив с поддержкой zstd
           tar --zstd -xf openwrt-sdk-*.tar.zst
           mv openwrt-sdk-25.12.5* sdk
@@ -53,4 +53,3 @@ jobs:
             sdk/bin/packages/x86_64/base/*.apk
             sdk/bin/packages/x86_64/luci/*.apk
           if-no-files-found: error
-
