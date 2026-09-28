@@ -1,0 +1,40 @@
+name: Build luci-app-xray APK
+
+on:
+  workflow_dispatch: # Позволяет запускать сборку вручную кнопкой
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup OpenWrt SDK
+        run: |
+          # Скачиваем официальный SDK OpenWrt 25.12.5 для архитектуры x86/64
+          wget https://openwrt.org
+          tar -xJf openwrt-sdk-*.tar.xz
+          mv openwrt-sdk-25.12.5* sdk
+
+      - name: Update and Install Feeds
+        run: |
+          cd sdk
+          # Добавляем репозиторий yichya/luci-app-xray в источники
+          echo "src-git-full luci_app_xray https://github.com" >> feeds.conf.default
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Compile Package
+        run: |
+          cd sdk
+          # Генерируем дефолтный конфиг сборки
+          make defconfig
+          # Запускаем компиляцию конкретного пакета luci-app-xray
+          make package/luci-app-xray/compile V=s
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-app-xray-apk-x86_64
+          path: sdk/bin/packages/x86_64/base/*.apk
