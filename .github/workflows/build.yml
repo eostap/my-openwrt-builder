@@ -10,20 +10,25 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          # Принудительно используем обновленный под-релиз checkout
           fetch-depth: 0
+
+      - name: Install ZSTD Compiler
+        run: |
+          # Устанавливаем zstd, так как новые SDK OpenWrt сжаты в .tar.zst
+          sudo apt-get update
+          sudo apt-get install -y zstd
 
       - name: Setup OpenWrt SDK
         run: |
-          wget https://downloads.openwrt.org/releases/25.12.5/targets/x86/64/openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
-          unzstd openwrt-sdk-*.tar.zst
-          mkdir sdk
-          mv openwrt-sdk-25.12.5* sdk/
+          # Скачиваем официальный SDK OpenWrt 25.12.5 (.tar.zst)
+          wget wget https://downloads.openwrt.org/releases/25.12.5/targets/x86/64/openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
+          # Распаковываем архив с поддержкой zstd
+          tar --zstd -xf openwrt-sdk-*.tar.zst
+          mv openwrt-sdk-25.12.5* sdk
 
       - name: Update and Install Feeds
         run: |
           cd sdk
-          # Добавляем репозиторий luci-app-xray
           echo "src-git-full luci_app_xray https://github.com" >> feeds.conf.default
           ./scripts/feeds update -a
           ./scripts/feeds install -a
@@ -31,17 +36,13 @@ jobs:
       - name: Configure Package
         run: |
           cd sdk
-          # Генерируем базовый конфиг
           make defconfig
-          # Явно включаем наш пакет в конфигурацию сборки как модуль (M)
-          # Это предотвратит ошибку отсутствия цели для компиляции
           echo "CONFIG_PACKAGE_luci-app-xray=m" >> .config
           make defconfig
 
       - name: Compile Package
         run: |
           cd sdk
-          # Запуск компиляции с флагом игнорирования ошибок второстепенных проверок, если они есть
           make package/luci-app-xray/compile V=s IGNORE_ERRORS=1
 
       - name: Upload Artifacts
@@ -52,3 +53,4 @@ jobs:
             sdk/bin/packages/x86_64/base/*.apk
             sdk/bin/packages/x86_64/luci/*.apk
           if-no-files-found: error
+
