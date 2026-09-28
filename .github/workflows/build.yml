@@ -16,7 +16,7 @@ jobs:
       - name: Setup OpenWrt SDK
         run: |
           wget https://downloads.openwrt.org/releases/25.12.5/targets/x86/64/openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
-          tar -xJf openwrt-sdk-*.tar.xz
+          unzstd openwrt-sdk-*.tar.zst
           mv openwrt-sdk-25.12.5* sdk
 
       - name: Update and Install Feeds
