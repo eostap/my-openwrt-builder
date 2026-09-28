@@ -19,33 +19,30 @@ jobs:
 
       - name: Setup OpenWrt SDK
         run: |
-          # Включаем повторные попытки (10 раз) и докачку при обрыве связи
           wget --tries=10 --retry-connrefused --waitretry=5 -c https://downloads.openwrt.org/releases/25.12.5/targets/x86/64/openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
-          
-          # Распаковываем конкретный указанный файл
           tar --zstd -xf openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
-          
-          # Переименовываем каталог в sdk
           mv openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64 sdk
 
       - name: Update and Install Feeds
         run: |
           cd sdk
-          echo "src-git-full luci_app_xray https://github.com/yichya/luci-app-xray " >> feeds.conf.default
+          echo "src-git-full luci_app_xray https://github.com/yichya/luci-app-xray" >> feeds.conf.default
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
       - name: Configure Package
         run: |
           cd sdk
-          make defconfig
+          # KCONFIG_NOT_STRICT=1 заставляет конфигуратор проигнорировать баг циклической зависимости Nginx
+          KCONFIG_NOT_STRICT=1 make defconfig
           echo "CONFIG_PACKAGE_luci-app-xray=m" >> .config
-          make defconfig
+          KCONFIG_NOT_STRICT=1 make defconfig
 
       - name: Compile Package
         run: |
           cd sdk
-          make package/luci-app-xray/compile V=s IGNORE_ERRORS=1
+          # Передаем флаг нестрогой конфигурации и в сам процесс компиляции
+          KCONFIG_NOT_STRICT=1 make package/luci-app-xray/compile V=s IGNORE_ERRORS=1
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
