@@ -19,20 +19,19 @@ jobs:
 
       - name: Setup OpenWrt SDK
         run: |
+          # Включаем повторные попытки (10 раз) и докачку при обрыве связи
           wget --tries=10 --retry-connrefused --waitretry=5 -c https://downloads.openwrt.org/releases/25.12.5/targets/x86/64/openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
+          
+          # Распаковываем конкретный указанный файл
           tar --zstd -xf openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
+          
+          # Переименовываем каталог в sdk
           mv openwrt-sdk-25.12.5-x86-64_gcc-14.3.0_musl.Linux-x86_64 sdk
 
-      - name: Clone luci-app-xray Safely
-        run: |
-          # Сначала создаем целевую директорию внутри SDK
-          mkdir -p sdk/package/luci-app-xray
-          # Клонируем репозиторий из глобального окружения (/usr/bin/git), чтобы SDK не ломал пути
-          /usr/bin/git clone --depth 1 https://github.com/yichya/luci-app-xray sdk/package/luci-app-xray
-
-      - name: Update Standard Feeds
+      - name: Update and Install Feeds
         run: |
           cd sdk
+          echo "src-git-full luci_app_xray https://github.com/yichya/luci-app-xray " >> feeds.conf.default
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
@@ -55,5 +54,4 @@ jobs:
           path: |
             sdk/bin/packages/x86_64/base/*.apk
             sdk/bin/packages/x86_64/luci/*.apk
-            sdk/bin/packages/x86_64/luci_app_xray/*.apk
-          if-no-files-found: warn
+          if-no-files-found: error
