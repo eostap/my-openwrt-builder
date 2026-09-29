@@ -48,4 +48,3 @@ jobs:
         with:
           name: luci-app-xray-ipk
           path: sdk/bin/packages/*/xray/luci-app-xray_*.ipk
-		  
