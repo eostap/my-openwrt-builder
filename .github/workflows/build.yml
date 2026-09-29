@@ -39,12 +39,18 @@ jobs:
       - name: Configure Package
         run: |
           cd sdk
+          # 1. Принудительно включаем компиляцию пакета luci-app-xray в виде модуля [M]
+          echo "CONFIG_PACKAGE_luci-app-xray=m" >> .config
+          
+          # 2. Разворачиваем зависимости для выбранного пакета
           make defconfig
-          # Включаем компиляцию пакета в виде IPK
+          
+          # 3. Компилируем пакет со всеми его внутренними зависимостями
           make package/luci-app-xray/compile V=s
 
       - name: Upload IPK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: luci-app-xray-ipk
-          path: sdk/bin/packages/*/xray/luci-app-xray_*.ipk
+          # Оптимизированный путь, чтобы найти ipk в любой папке bin/packages/
+          path: sdk/bin/packages/**/*.ipk
