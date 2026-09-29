@@ -1,16 +1,16 @@
 name: Build LuCI-app-xray
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Prepare Environment
         run: |
@@ -54,3 +54,4 @@ jobs:
           name: luci-app-xray-ipk
           # Оптимизированный путь, чтобы найти ipk в любой папке bin/packages/
           path: sdk/bin/packages/**/*.ipk
+
