@@ -24,7 +24,7 @@ jobs:
 
       - name: Download OpenWrt SDK
         run: |
-	  SDK_URL="https://downloads.openwrt.org/releases/24.10.8/targets/x86/64/openwrt-sdk-24.10.8-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
+          SDK_URL="https://downloads.openwrt.org/releases/24.10.8/targets/x86/64/openwrt-sdk-24.10.8-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
           wget --tries=10 --retry-connrefused --waitretry=5 -c $SDK_URL -O sdk.tar.zst
           tar --zstd -xf sdk.tar.zst
           mv openwrt-sdk-* sdk
@@ -48,4 +48,4 @@ jobs:
         with:
           name: luci-app-xray-ipk
           path: sdk/bin/packages/*/xray/luci-app-xray_*.ipk
-          
+		  
