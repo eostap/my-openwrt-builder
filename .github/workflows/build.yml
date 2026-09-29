@@ -15,7 +15,7 @@ jobs:
       - name: Prepare Environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-alternative build-essential libncurses5-dev gawk git gettext libssl-dev xsltproc zlib1g-dev ecj fastjar java-propose-classpath
+          sudo apt-get install -y build-essential libncurses5-dev gawk git gettext libssl-dev xsltproc zlib1g-dev ecj fastjar java-propose-classpath
 
       - name: Install ZSTD Compiler
         run: |
